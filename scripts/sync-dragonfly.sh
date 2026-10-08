@@ -8,10 +8,32 @@ trap 'rm -rf "$work_dir"' EXIT
 
 # Read registry tags directly, so releases without published images are ignored.
 crane ls "$source_image" > "$work_dir/tags"
+# Select the highest numeric (major, minor, patch) version for each major.
+# Keep the original upstream tag; prefer v-prefixed tags if both forms exist.
+python3 - "$work_dir/tags" > "$work_dir/versions" <<'PY'
+import re
+import sys
+
+latest = {}
+with open(sys.argv[1]) as tags:
+    for line in tags:
+        tag = line.strip()
+        match = re.fullmatch(r"v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", tag)
+        if not match:
+            continue
+        version = tuple(map(int, match.groups()))
+        candidate = (version, tag.startswith("v"), tag)
+        major = version[0]
+        if major not in latest or candidate > latest[major]:
+            latest[major] = candidate
+for major in sorted(latest):
+    print(latest[major][2])
+PY
+
 versions=()
 while IFS= read -r tag; do
   versions+=("$tag")
-done < <(sed -nE '/^v?[0-9]+\.[0-9]+\.[0-9]+$/p' "$work_dir/tags" | sort)
+done < "$work_dir/versions"
 if (( ${#versions[@]} == 0 )); then
   echo 'Tidak ditemukan tag rilis stabil pada registry upstream.' >&2
   exit 1
@@ -19,7 +41,7 @@ fi
 
 copied=0
 skipped=0
-# Publish latest last; historical version tags remain available.
+# Publish upstream latest last, after the newest stable release of each major.
 for tag in "${versions[@]}" latest; do
   source_digest=$(crane digest "$source_image:$tag")
   if target_digest=$(crane digest "$target_image:$tag" 2> "$work_dir/error"); then

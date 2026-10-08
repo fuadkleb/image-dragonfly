@@ -1,15 +1,20 @@
 # Dragonfly registry mirror
 
 Workflow menyalin image resmi `docker.dragonflydb.io/dragonflydb/dragonfly`
-ke `registry.pauddasmen.id/dragonfly`. Semua tag rilis stabil (`vX.Y.Z`
-atau `X.Y.Z`) dan `latest` mengikuti tag dan digest upstream, termasuk seluruh
-arsitektur. Tag prerelease dan varian seperti `ubuntu-*` tidak disalin.
+ke `registry.pauddasmen.id/dragonfly`. Hanya versi stabil terbaru dari setiap
+major dan tag `latest` yang disinkronkan, termasuk seluruh arsitektur.
+Contoh: jika major 1 terbaru adalah `v1.40.2` dan major 2 terbaru adalah
+`v2.0.2`, hanya kedua tag versi tersebut yang disalin, beserta `latest`.
+Tag versi lengkap (`vX.Y.Z` atau `X.Y.Z`) dan digest tetap sama dengan upstream.
+Pemilihan versi menggunakan perbandingan angka major, minor, dan patch.
+Tag prerelease dan varian seperti `ubuntu-*` tidak disalin.
 
 Pemeriksaan berjalan setiap hari pukul **09:17 WIB**, saat perubahan workflow,
 script, atau Dockerfile di-push ke `main`, dan melalui tombol **Run workflow**
 di GitHub Actions. Jadwal GitHub dapat terlambat dan hanya berjalan dari default
-branch. Sinkronisasi pertama menyalin seluruh versi stabil yang tersedia;
-berikutnya hanya tag yang belum ada atau digest-nya berubah.
+branch. Setiap pemeriksaan memilih ulang versi terbaru per major, lalu hanya
+menyalin tag yang belum ada atau digest-nya berubah. Tag lama yang sudah ada
+di registry tujuan tidak dihapus.
 
 Siapkan repository/organization Actions secrets dengan nama yang sama seperti
 project lain, dan pastikan repository ini diberi akses jika menggunakan

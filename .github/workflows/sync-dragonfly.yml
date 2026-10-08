@@ -54,7 +54,7 @@ jobs:
           username: ${{ secrets.PAUDDASMEN_HUB_USERNAME }}
           password: ${{ secrets.PAUDDASMEN_HUB_PASSWORD }}
 
-      - name: Sync stable versions and latest
+      - name: Sync latest stable version per major and latest
         env:
           TARGET_IMAGE: registry.pauddasmen.id/dragonfly
         run: bash scripts/sync-dragonfly.sh
