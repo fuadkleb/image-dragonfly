@@ -1,0 +1,60 @@
+name: Sync Dragonfly images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sync-dragonfly.yml'
+      - 'scripts/sync-dragonfly.sh'
+      - 'Dockerfile'
+  schedule:
+    # 02:17 UTC = 09:17 WIB, setiap hari.
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-dragonfly
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.24.x'
+          cache: false
+
+      - name: Install crane
+        run: |
+          go install github.com/google/go-containerregistry/cmd/crane@v0.20.6
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Validate registry configuration
+        env:
+          REGISTRY: ${{ secrets.PAUDDASMEN_HUB_REGISTRY }}
+        run: |
+          if [[ "$REGISTRY" != 'registry.pauddasmen.id' ]]; then
+            echo 'PAUDDASMEN_HUB_REGISTRY harus berisi registry.pauddasmen.id (tanpa https:// atau slash).'
+            exit 1
+          fi
+
+      - name: Login to PAUDDASMEN registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.PAUDDASMEN_HUB_REGISTRY }}
+          username: ${{ secrets.PAUDDASMEN_HUB_USERNAME }}
+          password: ${{ secrets.PAUDDASMEN_HUB_PASSWORD }}
+
+      - name: Sync stable versions and latest
+        env:
+          TARGET_IMAGE: registry.pauddasmen.id/dragonfly
+        run: bash scripts/sync-dragonfly.sh
